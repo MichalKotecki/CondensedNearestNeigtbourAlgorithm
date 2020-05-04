@@ -11,7 +11,7 @@
 
 
 // Author: Michal Kotecki
-// Those functions are some basic C++ bolierplate to replace some repetitive code and be more intuitive in use.
+// Those functions are some basic C++ boilerplate to replace some repetitive code and be more intuitive in use.
 
 // To use this functions you need to add
 // using namespace Codecki;
@@ -49,16 +49,23 @@ namespace Codecki {
         std::cout << somethingToPrint;
     }
 
-    template<class t>
-    void printline(t const & somethingToPrint) {
-        std::cout << somethingToPrint << "\n";
+    // This printline() with no parameters is necessary in order for the variadic printline() to work.
+    void printline() {
+        std::cout << '\n';
+    }
+
+    // This is Python-like print. This can take any number of arguments of different types. Example: ("text", 1, 5.7, 'e')
+    template<class t, class ... tt>
+    void printline(t const & somethingToPrint, tt ... moreToPrint) {
+        std::cout << somethingToPrint << ' ';
+        printline(moreToPrint...);
     }
 
     template<class t>
     void printVector(std::vector<t> const & vectorToPrint) {
 
         for (int i = 0; i < vectorToPrint.size(); ++i) {
-            std::cout << "index: " << i << "\tvalue: " << vectorToPrint.at(i) << "\n";
+            std::cout << "index: " << i << "\tvalue: " << vectorToPrint.at(i) << '\n';
         }
 
     }
@@ -68,17 +75,27 @@ namespace Codecki {
     {
         for (int j = 0; j < vectorToPrint.size(); ++j) {
 
-            std::cout << "Row " << j << "\n";
+            std::cout << "Row " << j << '\n';
             for (int i = 0; i < vectorToPrint.at(j).size(); ++i) {
                 std::cout << vectorToPrint.at(j).at(i) << ", ";
             }
-            std::cout << "\n";
+            std::cout << '\n';
         }
     }
 
     void Delay(int miliseconds)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(miliseconds));
+    }
+
+    void Pause()
+    {
+        getchar();
+    }
+
+    void clearConsole()
+    {
+        system("cls||clear");
     }
 
     class measureTime{
@@ -158,9 +175,8 @@ namespace Codecki {
             return 1;
         return binomialCoefficient(n - 1, k - 1) + binomialCoefficient(n - 1, k);
     }
-
-
-
+    
+    
 
 //  Distributions
 
@@ -192,7 +208,7 @@ namespace Codecki {
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
         std::mt19937 merseneTwisterGenerator{seed};
         std::normal_distribution<double> normalDistribution(mean,standardDeviation);
-        Delay(1);       //  The use of this delay is necessary. Otherwise some results from a loop call, may appear to be the same numbers.
+        Delay(1);       //  The use of this delay is necessary. Otherwise, some results from a loop call, may appear to be the same numbers.
         return normalDistribution(merseneTwisterGenerator);
     }
 
