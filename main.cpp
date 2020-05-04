@@ -1,10 +1,10 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
+#include <set>
 #include "Codecki_LIB.cpp"
 
 using namespace Codecki;
-
 
 
 // Assumptions: class labels start from '1', NOT '0'. There MUST NOT be any label missing. Example of a wrong class label set: 1,2,5,6. Correct: 1,2,3,4.
@@ -13,6 +13,10 @@ struct Point
 {
     int classLabel;
     std::vector<double> DimensionList;
+
+    auto operator==(const Point& point){
+        return (this->classLabel == point.classLabel && this->DimensionList == point.DimensionList);
+    }
 };
 
 std::vector<Point> TrainingSet;
@@ -77,20 +81,15 @@ int MostCommonClassLabel(std::vector<PointAndDistance> const & PointAndDistanceL
     return BiggestLabelIndex;
 }
 
+// function kNN_Algorithm() returns True if a point would be classified correctly. Otherwise, it returns False.
 bool kNN_Algorithm(Point const & pointToClassify, std::vector<Point> const & reducedSet, int k_choosenNumberOfNeighbors)
 {
-    // pointToClassify MUST NOT already be in reducedSet
+    // pointToClassify MUST NOT already be in reducedSet, so its removed
     std::vector<Point> tempReducedSet;
     for(auto const & point : reducedSet)
     {
         if(&point != &pointToClassify)
-        {
             tempReducedSet.push_back(point);
-        }
-        else
-        {
-            printline("THIS VALUE IS ALREADY IN THE REDUCED SET.");
-        }
     }
 
     std::vector<PointAndDistance> PointAndDistanceList;
@@ -105,22 +104,12 @@ bool kNN_Algorithm(Point const & pointToClassify, std::vector<Point> const & red
     std::sort(PointAndDistanceList.begin(), PointAndDistanceList.end());
     std::vector<PointAndDistance> subVector;
     subVector = std::vector<PointAndDistance>(PointAndDistanceList.begin(), PointAndDistanceList.begin() + k_choosenNumberOfNeighbors);
-//  subVector = std::vector<PointAndDistance>(PointAndDistanceList.begin() + 1, PointAndDistanceList.begin() + 1 + k_choosenNumberOfNeighbors);
 
     // Check if the point was correctly classified and return result
-    if(MostCommonClassLabel(subVector) == pointToClassify.classLabel)
-    {
-        printline("OK. The point was correctly classified");
-        return true;
-    }
-    else
-    {
-        printline("ERROR. The point was NOT correctly classified");
-        return false;
-    }
+    return (MostCommonClassLabel(subVector) == pointToClassify.classLabel);
 }
 
-std::pair<Point, Point> FindPairOfMutuallyClosestPoints(Point const & startingPoint, int lastDistance)
+std::pair<Point, Point> FindPairOfMutuallyClosestPoints(Point const & startingPoint, double lastDistance)
 {
     // For point 'A', find the closest from a different class. Let's call the next point 'B'
     // For point 'B', find the closest from a different class.
@@ -153,25 +142,41 @@ std::pair<Point, Point> FindPairOfMutuallyClosestPoints(Point const & startingPo
             if(lastDistance == PointAndDistanceList.at(i).distanceBetweenThisPointAndpointToClassify)
             {
                 // the pair of mutually closest points was found
-                std::make_pair(startingPoint, PointAndDistanceList.at(i).point);
+                return std::make_pair(startingPoint, PointAndDistanceList.at(i).point);
             }
             else
             {
-                FindPairOfMutuallyClosestPoints(PointAndDistanceList.at(i).point, PointAndDistanceList.at(i).distanceBetweenThisPointAndpointToClassify);
+                return FindPairOfMutuallyClosestPoints(PointAndDistanceList.at(i).point, PointAndDistanceList.at(i).distanceBetweenThisPointAndpointToClassify);
             }
         }
     }
-
     return std::make_pair(Point(),Point());
 }
 
-
-void MutuallyClosestPointsAlgorithm()
+bool pointIsInTheSet(Point point, std::vector<Point> const & set)
 {
-    for(auto Point : TrainingSet)
+    bool pointIsInTheSet = false;
+    for(auto pointFromSet : set)
     {
-        FindPairOfMutuallyClosestPoints(Point);
+        if(point == pointFromSet)
+            return true;
     }
+    return pointIsInTheSet;
+}
+
+std::vector<Point> MutuallyClosestPointsAlgorithm()
+{
+    std::vector<Point> preprocessedSet;
+
+    for(auto const & point : TrainingSet)
+    {
+        std::pair<Point,Point> tempPair = FindPairOfMutuallyClosestPoints(point, -1);
+        if(!pointIsInTheSet(tempPair.first, preprocessedSet))
+            preprocessedSet.push_back(tempPair.first);
+        if(!pointIsInTheSet(tempPair.second, preprocessedSet))
+            preprocessedSet.push_back(tempPair.second);
+    }
+    return preprocessedSet;
 }
 
 
@@ -187,8 +192,6 @@ int main() {
     std::stringstream ss;
     ss << File.rdbuf();
     File.close();
-
-    printline(numOfClasses, numOfInputValuesInOneRow, numOfLines);
 
     for (int i = 0; i < numOfLines; i++) {
 
@@ -210,16 +213,9 @@ int main() {
 
     //  Start of the actual program
 
-    // Mutually Closest Points Algorithm
-
-
-
-
-    // Condensed Nearest Neighbour Algorithm
-
     std::vector<Point> ReducedSet;
     bool allPointsWereClassifiedCorrectly = false;
-    ReducedSet.push_back(TrainingSet.at(0));
+    ReducedSet =  MutuallyClosestPointsAlgorithm();
 
     while(!allPointsWereClassifiedCorrectly) {
 
@@ -233,10 +229,8 @@ int main() {
                 ReducedSet.push_back(TrainingSet.at(k));
             }
         }
-        printline(TrainingSet.size());
-        printline(ReducedSet.size());
     }
-
+    printline("Training set of", TrainingSet.size(), "points can be reduced to a smaller set of", ReducedSet.size(), "points.");
 
 return 0;
 }
